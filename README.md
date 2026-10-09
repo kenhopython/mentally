@@ -9,8 +9,8 @@
 ## 我要運行哪個檔案
 
 ```powershell
-git clone <這個 repo 的網址>
-cd mantally
+git clone https://github.com/kenhopython/mentally.git
+cd mentally
 python api/main.py
 ```
 
@@ -283,7 +283,7 @@ python -m models.build_simulator_anchors     # 重算模擬裝置的錨點（換
 
 ```powershell
 pip install -r requirements.txt        # 安裝套件
-copy .env.example .env                  # 建立 .env，填入 DEEPSEEK_API_KEY
+copy .env.example .env                  # 建立 .env（API Key 要自己填，見下一節）
 python api/main.py                      # 啟動，開 http://localhost:8001/
 ```
 
@@ -308,6 +308,80 @@ python api/main.py                      # 啟動，開 http://localhost:8001/
 - **無線（推薦）**：把 `arduino/wifi_bridge/wifi_bridge.ino` 燒進 ESP8266/ESP32
   （Arduino IDE 需安裝 **WiFiManager** 函式庫）。開機後連熱點 **`MoodSense-Setup`**
   設定 WiFi 與伺服器位址，設定會記住、不用重燒。
+
+---
+
+## 設定 DeepSeek API Key（要自己申請）
+
+**這個專案不附任何 API Key，每個人都要用自己申請的。**
+沒有它網站照樣跑得起來 —— ML 預測完全不受影響，只有 AI 投票／解釋／對話會停用
+（回傳 `no_api_key`）。所以只想先看看網站長怎樣，可以跳過這一節。
+
+### ① 申請一把金鑰
+
+1. 到 <https://platform.deepseek.com> 註冊帳號
+2. 左側選單 → **API keys** → **Create new API key**
+3. 複製產生的字串（`sk-` 開頭的一長串英數字）
+4. ⚠ 金鑰**只顯示一次**，關掉頁面就再也看不到，先貼到安全的地方
+
+> DeepSeek 是付費 API，呼叫前需要先儲值。
+
+### ② 放進專案根目錄的 `.env`
+
+金鑰要放在**專案根目錄**（跟 `README.md`、`api/` 同一層）一個叫 `.env` 的檔案裡。
+這個檔案不在 repo 裡，要自己建立：
+
+```
+你的專案資料夾\
+├─ .env            ← 金鑰放這裡（自己建立）
+├─ .env.example    ← 範本，照著複製
+├─ api\
+├─ frontend\
+└─ README.md
+```
+
+在專案根目錄執行：
+
+```powershell
+copy .env.example .env
+```
+
+然後用文字編輯器打開 `.env`，把 `DEEPSEEK_API_KEY` 那一行改成你的金鑰：
+
+```ini
+DEEPSEEK_API_KEY=sk-貼上你的金鑰
+```
+
+| 注意事項 | 說明 |
+|---|---|
+| 等號兩邊不加空格 | `DEEPSEEK_API_KEY=sk-xxx` ✅　`DEEPSEEK_API_KEY = sk-xxx` ❌ |
+| 值不加引號 | 直接寫，不要包 `"` 或 `'` |
+| 檔名開頭有一個點 | 是 `.env`，不是 `env`，也不是 `.env.txt` |
+| 存成 UTF-8 | Windows 記事本預設編碼可能不是 |
+
+### ③ 重啟伺服器
+
+`.env` 只在**啟動時讀一次**。改完要關掉伺服器（`Ctrl+C`）再重新 `python api/main.py`。
+
+### ④ 確認有沒有生效
+
+```powershell
+curl http://localhost:8001/health
+```
+
+回傳裡看到 `"deepseek_configured": true` 就代表讀到了。
+如果是 `false`，回頭檢查檔名是不是 `.env`、位置是不是在專案根目錄。
+
+也可以在網頁按「😌 平靜」，看「AI 分析」分頁有沒有出現解釋文字。
+
+### ⚠ 三件絕對不要做的事
+
+1. **不要把 `.env` 上傳 GitHub** —— 它已經列在 `.gitignore` 裡，不要把它從裡面拿掉
+2. **不要把金鑰寫進任何 `.py` 檔** —— 程式是從 `.env` 讀的，寫死等於直接公開
+3. **不要把金鑰貼給任何人** —— 金鑰等於你的帳號額度，外流會被盜刷
+
+> 金鑰不小心外洩時，**光是刪檔案沒有用**：要登入 <https://platform.deepseek.com>
+> 的 API keys 頁面把舊金鑰 **revoke（作廢）**，再建一把新的填回 `.env`。
 
 ---
 
