@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>心情監測系統 · 多模態生理訊號分析</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- 頂部導航 -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🧠</div>
+      <div class="brand-text">
+        <h1>心情監測系統</h1>
+        <p class="subtitle">EEG + HRV + EDA 多模態生理訊號分析平台</p>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-btn active" data-tab="monitor">即時監測</button>
+      <button class="nav-btn" data-tab="signals">生理訊號</button>
+      <button class="nav-btn" data-tab="personal">個人分析</button>
+      <button class="nav-btn" data-tab="ai">AI 分析</button>
+      <button class="nav-btn" data-tab="history">歷史紀錄</button>
+    </nav>
+
+    <div class="top-right">
+      <span class="status-dot" id="status-dot"></span>
+      <span class="status-text" id="status-text">未連接</span>
+      <span class="source-chip simulated" id="source-chip">模擬資料</span>
+    </div>
+  </header>
+
+  <!-- 控制列（範例資料 + 真實裝置） -->
+  <div class="controls">
+    <span class="controls-label">資料來源：</span>
+    <button class="btn" data-preset="calm">😌 平靜</button>
+    <button class="btn" data-preset="normal">🙂 正常</button>
+    <button class="btn" data-preset="stress">😰 壓力</button>
+    <button class="btn" id="btn-live">📡 即時監測</button>
+    <button class="btn" id="btn-sim">🧪 模擬裝置：啟動中…</button>
+    <button class="btn" id="btn-excel">📂 上傳 Excel</button>
+    <input type="file" id="excel-file" accept=".xlsx,.xls,.csv" hidden>
+    <span class="simulated-note" id="source-note">⚠ 目前為「模擬資料」示範</span>
+  </div>
+
+  <main>
+    <!-- ============ 即時監測 ============ -->
+    <section class="tab-panel active" id="panel-monitor">
+      <div class="hero" id="hero">
+        <div class="hero-left">
+          <div class="emotion-icon" id="emotion-icon">—</div>
+          <div>
+            <div class="hero-label">目前生理狀態</div>
+            <div class="emotion-text" id="emotion-text">等待分析</div>
+            <div class="emotion-sub" id="emotion-sub"></div>
+            <div class="consensus-chip" id="consensus-chip"></div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-metric">
+            <div class="hero-metric-label">模型信心度</div>
+            <div class="hero-metric-value" id="hero-confidence">—</div>
+          </div>
+          <div class="hero-metric">
+            <div class="hero-metric-label">資料品質</div>
+            <div class="hero-metric-value" id="hero-quality">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="baseline-strip" id="baseline-strip"></div>
+      <div class="arousal-note" id="arousal-note"></div>
+
+      <!-- 三指標卡 -->
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-label">❤️ 心率</div><div class="kpi-value"><span id="kpi-hr">—</span><span class="kpi-unit">bpm</span></div><div class="kpi-sub" id="kpi-hr-sub">—</div></div>
+        <div class="kpi"><div class="kpi-label">〽 HRV</div><div class="kpi-value"><span id="kpi-rmssd">—</span><span class="kpi-unit">ms</span></div><div class="kpi-sub" id="kpi-rmssd-sub">—</div></div>
+        <div class="kpi"><div class="kpi-label">◉ EDA</div><div class="kpi-value"><span id="kpi-scl">—</span><span class="kpi-unit">μS</span></div><div class="kpi-sub" id="kpi-scl-sub">—</div></div>
+      </div>
+
+      <!-- EEG 卡 -->
+      <div class="card">
+        <div class="card-head"><h2>EEG 頻帶分佈</h2><button class="link-btn" data-goto="signals">查看 EEG 詳細分析 →</button></div>
+        <div class="band-bars" id="band-bars"></div>
+      </div>
+
+      <!-- 個人基線摘要 + AI 摘要 -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-head"><h2>個人基線</h2><button class="link-btn" data-goto="personal">查看我的基線 →</button></div>
+          <div class="baseline-summary" id="baseline-summary"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>🤖 AI 多模態分析</h2><button class="link-btn" data-goto="ai">完整分析 →</button></div>
+          <div class="ai-brief" id="ai-brief"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 生理訊號 ============ -->
+    <section class="tab-panel" id="panel-signals">
+      <div class="card"><div class="card-head"><h2>EEG 頻帶功率</h2></div><div class="chart-wrap"><canvas id="chart-eeg"></canvas></div></div>
+      <div class="signal-grid">
+        <div class="card"><div class="card-head"><h2>EEG 腦電波</h2></div><div class="kv" id="signals-eeg"></div></div>
+        <div class="card"><div class="card-head"><h2>HRV 心率變異</h2></div><div class="kv" id="signals-hrv"></div></div>
+        <div class="card"><div class="card-head"><h2>EDA 皮膚電</h2></div><div class="kv" id="signals-eda"></div></div>
+      </div>
+    </section>
+
+    <!-- ============ 個人分析 ============ -->
+    <section class="tab-panel" id="panel-personal">
+      <div class="card">
+        <div class="card-head"><h2>個人基線比較（z-score）</h2><span class="tag" id="baseline-status"></span></div>
+        <p class="note">Z-score 是統計比較，代表目前值與個人基線的差異，不代表疾病。</p>
+        <div class="chart-wrap" style="height:260px"><canvas id="chart-baseline"></canvas></div>
+        <div class="table-wrap"><table class="table"><thead><tr><th>特徵</th><th>目前值</th><th>個人基線</th><th>Z-score</th><th>狀態</th></tr></thead><tbody id="baseline-tbody"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ============ AI 分析 ============ -->
+    <section class="tab-panel" id="panel-ai">
+      <div class="card">
+        <div class="card-head"><h2>ML 模型結果</h2></div>
+        <div class="model-result" id="model-result"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>雙分類器投票（ML ＋ DeepSeek）</h2><span class="tag" id="vote-status"></span></div>
+        <div class="vote-grid">
+          <div class="vote-box" id="vote-ml">
+            <div class="vote-role">① 機器學習模型</div>
+            <div class="vote-label" id="vote-ml-label">—</div>
+            <div class="vote-sub" id="vote-ml-sub"></div>
+          </div>
+          <div class="vote-box" id="vote-llm">
+            <div class="vote-role">② DeepSeek 分類器</div>
+            <div class="vote-label" id="vote-llm-label">—</div>
+            <div class="vote-sub" id="vote-llm-sub"></div>
+          </div>
+          <div class="vote-box" id="vote-final">
+            <div class="vote-role">最終結果</div>
+            <div class="vote-label" id="vote-final-label">—</div>
+            <div class="vote-sub" id="vote-final-sub"></div>
+          </div>
+        </div>
+        <p class="note" id="vote-note">
+          兩票一致 → 提高信心度；兩票不一致 → 以 ML 為準，並標記「模型分歧」。
+          DeepSeek 不參與數值計算，只投標籤。
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>主要影響特徵（相對個人基線）</h2></div>
+        <div class="feature-list" id="feature-list"></div>
+        <p class="note">特徵影響來自模型與個人基線比較，由後端 ML 計算，非 AI 自行產生。</p>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>🤖 AI 多模態分析（DeepSeek）</h2><span class="tag" id="deepseek-status"></span></div>
+        <div class="ai-summary" id="ai-summary"></div>
+        <div class="ai-grid">
+          <div class="ai-section"><h3>EEG 分析</h3><p id="ai-eeg"></p></div>
+          <div class="ai-section"><h3>HRV 分析</h3><p id="ai-hrv"></p></div>
+          <div class="ai-section"><h3>EDA 分析</h3><p id="ai-eda"></p></div>
+          <div class="ai-section"><h3>綜合分析</h3><p id="ai-multimodal"></p></div>
+          <div class="ai-section"><h3>基線分析</h3><p id="ai-baseline"></p></div>
+          <div class="ai-section"><h3>趨勢分析</h3><p id="ai-trend"></p></div>
+        </div>
+        <div class="ai-possible"><strong>可能的生理狀態：</strong><span id="ai-possible"></span></div>
+        <div class="ai-suggestions"><h3>自我調節建議</h3><ul id="ai-suggestions"></ul></div>
+        <p class="ai-limitations" id="ai-limitations"></p>
+      </div>
+    </section>
+
+    <!-- ============ 歷史紀錄 ============ -->
+    <section class="tab-panel" id="panel-history">
+      <div class="range-tabs">
+        <button class="range-btn active" data-range="session">本次</button>
+        <button class="range-btn" data-range="last7">最近 7 次</button>
+        <button class="range-btn" data-range="last30">最近 30 次</button>
+      </div>
+      <div class="card"><div class="card-head"><h2>情緒分類比例</h2></div><div class="chart-wrap"><canvas id="chart-history"></canvas></div></div>
+      <div class="card"><div class="card-head"><h2>時間軸</h2></div><div class="timeline" id="timeline"></div></div>
+    </section>
+  </main>
+
+  <footer class="foot">EEG + HRV + EDA 多模態生理訊號分析平台 · ML 分類 + DeepSeek 解釋（非醫療診斷）</footer>
+
+  <!-- ============ Excel 批量預測（測準確率） ============ -->
+  <div class="excel-modal" id="excel-modal" aria-hidden="true">
+    <div class="excel-dialog">
+      <header class="excel-head">
+        <div>
+          <div class="excel-title">📂 Excel 批量預測</div>
+          <div class="excel-sub" id="excel-sub">上傳生理特徵 Excel（不含心情標籤），逐列預測情緒</div>
+        </div>
+        <button class="chat-icon-btn" id="excel-close" title="關閉">✕</button>
+      </header>
+      <div class="excel-body" id="excel-body">
+        <p class="note">把 <code>data/prediction_input_sample.xlsx</code> 拖進來，或按上面「上傳 Excel」選擇檔案。</p>
+        <p class="note">檔案裡只需有生理特徵（EEG/HRV/EDA），<strong>不要有 emotion_label</strong> —— 這樣才能公正地測準確率。</p>
+      </div>
+      <footer class="excel-foot" id="excel-foot">
+        <span class="excel-ai-note">🤖 每一列都會做完整分析（ML + DeepSeek）</span>
+        <button class="btn" id="excel-download" disabled>⬇ 下載預測結果 CSV</button>
+        <button class="btn" id="excel-play" disabled>▶ 逐筆套用到網頁</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============ AI 對話框（浮動） ============ -->
+  <button class="chat-fab" id="chat-fab" aria-label="開啟 AI 對話">💬<span class="chat-fab-text">AI 對話</span></button>
+
+  <section class="chat-panel" id="chat-panel" aria-hidden="true">
+    <header class="chat-head">
+      <div>
+        <div class="chat-title">🤖 AI 對話助手</div>
+        <div class="chat-sub" id="chat-sub">會參考你最新的量測結果</div>
+      </div>
+      <div class="chat-head-actions">
+        <button class="chat-icon-btn" id="chat-clear" title="清除對話">🗑</button>
+        <button class="chat-icon-btn" id="chat-close" title="關閉">✕</button>
+      </div>
+    </header>
+
+    <div class="chat-body" id="chat-body"></div>
+
+    <div class="chat-quick" id="chat-quick">
+      <button class="chat-chip" data-q="我現在的狀態如何？">我現在的狀態如何？</button>
+      <button class="chat-chip" data-q="用我個人的基線解釋一下目前的數據">用我的基線解釋</button>
+      <button class="chat-chip" data-q="給我一些現在可以做的放鬆建議">放鬆建議</button>
+    </div>
+
+    <form class="chat-input" id="chat-form">
+      <textarea id="chat-text" rows="1" placeholder="問我任何關於你生理狀態的問題…"
+                maxlength="800"></textarea>
+      <button type="submit" id="chat-send" class="chat-send">送出</button>
+    </form>
+    <p class="chat-foot">AI 只解釋系統算好的結果，不做醫療診斷。</p>
+  </section>
+
+  <script src="js/chart.umd.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "best_model": "svm_linear",
+  "metrics": {
+    "accuracy": 0.4981,
+    "f1_macro": 0.4769,
+    "roc_auc": 0.6852
+  },
+  "label_order": [
+    "positive",
+    "neutral",
+    "negative"
+  ]
+}
